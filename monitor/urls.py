@@ -14,6 +14,6 @@ urlpatterns = [
     # API endpoint для получения данных об инцидентах (JSON)
     path('api/incidents/', views.get_incidents, name='get_incidents'),
 
-    # API endpoint для отметки инцидента как решенного
+     # API endpoint для отметки инцидента как решенного
     path('api/incidents/<int:incident_id>/resolve/', views.resolve_incident, name='resolve_incident'),      #
 ]
