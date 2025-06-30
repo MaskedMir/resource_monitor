@@ -1,0 +1,101 @@
+{% extends "monitor/base.html" %}
+
+{% block content %}
+<div class="header">
+    <h1>Incidents</h1>
+    <div>
+        <span>Welcome, {{ request.user.username }}</span>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+</div>
+
+<table id="incidents-table">
+    <thead>
+        <tr>
+            <th>Machine</th>
+            <th>Type</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Status</th>
+            <th>Threshold</th>
+            <th>Resolved By</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data will be loaded via JavaScript -->
+    </tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function loadIncidents() {
+        fetch('/api/incidents/')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.querySelector('#incidents-table tbody');
+                tableBody.innerHTML = '';
+
+                data.incidents.forEach(incident => {
+                    const row = document.createElement('tr');
+                    if (incident.is_active) {
+                        row.classList.add('active');
+                    }
+
+                    row.innerHTML = `
+                        <td>${incident.machine}</td>
+                        <td>${incident.type}</td>
+                        <td>${incident.start_time}</td>
+                        <td>${incident.end_time || '-'}</td>
+                        <td>${incident.is_active ? 'Active' : 'Resolved'}</td>
+                        <td>${incident.threshold}</td>
+                        <td>${incident.resolved_by || '-'}</td>
+                        <td>
+                            ${incident.is_active ?
+                                `<button onclick="resolveIncident(${incident.id})">Resolve</button>` :
+                                '-'}
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            });
+    }
+
+    function resolveIncident(incidentId) {
+        fetch(`/api/incidents/${incidentId}/resolve/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                loadIncidents();
+            }
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Load incidents initially and then every 30 seconds
+    loadIncidents();
+    setInterval(loadIncidents, 30000);
+});
+</script>
+{% endblock %}
